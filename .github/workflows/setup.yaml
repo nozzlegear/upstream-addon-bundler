@@ -43,6 +43,9 @@ jobs:
 
       - name: Restore workflows and create config
         run: |
+          # Remove any upstream workflow files to avoid conflicts
+          rm -rf .github/workflows
+
           # Restore our workflow files
           mkdir -p .github/workflows
           cp -r /tmp/workflows/* .github/workflows/

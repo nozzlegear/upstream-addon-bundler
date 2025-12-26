@@ -51,10 +51,32 @@ jobs:
             echo "Found $UPSTREAM_COMMITS new commit(s) in upstream repository since merge base"
           fi
 
+      - name: Backup workflow files
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          mkdir -p /tmp/our-workflows
+          cp .github/workflows/*.yaml /tmp/our-workflows/
+
       - name: Rebase on upstream
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
           git rebase upstream/main
+
+      - name: Restore workflow files
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          # Remove any upstream workflow files
+          rm -rf .github/workflows
+
+          # Restore our workflow files
+          mkdir -p .github/workflows
+          cp /tmp/our-workflows/*.yaml .github/workflows/
+
+          # Commit if there are changes
+          git add .github/workflows
+          if ! git diff --staged --quiet .github/workflows; then
+            git commit -m "Remove upstream workflows, restore automation workflows"
+          fi
 
       - name: Push changes
         if: steps.check_changes.outputs.has_changes == 'true'
