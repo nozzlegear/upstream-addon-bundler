@@ -1,6 +1,6 @@
 # Upstream Addon Bundler Template
 
-This template repository contains the workflows necessary for automatically syncing and bundling WoW addons from upstream repositories. While the [the CurseBreaker CLI](https://github.com/AcidWeb/CurseBreaker) I've been using to manage addons since 2019 *does* support several addon repositories, including Wago and WowInterface, it does *not* support Curseforge's closed API. Luckily, CurseBreaker can install addons via Github – as long as they're [bundled in the correct format](https://github.com/BigWigsMods/packager), which some addon authors don't do.
+This template repository contains the workflows necessary for automatically syncing and bundling WoW addons from upstream repositories. While [the CurseBreaker CLI](https://github.com/AcidWeb/CurseBreaker) I've been using to manage addons since 2019 *does* support several addon repositories, including Wago and WowInterface, it does *not* support Curseforge's closed API. Luckily, CurseBreaker can install addons via Github – as long as they're [bundled in the correct format](https://github.com/BigWigsMods/packager), which some addon authors don't do.
 
 The workflows in this template repository are my solution to that problem. Instead of bothering every addon author by asking them to publish to addon repositories they don't use, or to add GitHub workflows when they may not be familiar with how they work, I can simply fork their repository, and let these workflows release a new bundle whenever the author updates their addon.
 
