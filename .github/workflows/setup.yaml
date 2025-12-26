@@ -14,6 +14,7 @@ jobs:
     permissions:
       contents: write
       actions: write
+      workflows: write
 
     steps:
       - name: Checkout
@@ -32,19 +33,30 @@ jobs:
           git remote add upstream https://github.com/${{ inputs.upstream_repo }}.git
           git fetch upstream
 
-      - name: Update sync workflow with upstream URL
+      - name: Backup workflow files
         run: |
+          mkdir -p /tmp/workflows
+          cp -r .github/workflows/* /tmp/workflows/
+
+      - name: Reset to upstream content
+        run: |
+          # Get all files from upstream, replacing template files
+          git checkout upstream/main .
+
+      - name: Restore and configure workflows
+        run: |
+          # Restore our workflow files
+          mkdir -p .github/workflows
+          cp -r /tmp/workflows/* .github/workflows/
+
+          # Update sync workflow with upstream URL
           sed -i 's|UPSTREAM_REPO_PLACEHOLDER|${{ inputs.upstream_repo }}|g' .github/workflows/sync-upstream.yaml
 
-      - name: Commit workflow update
+      - name: Commit setup
         run: |
-          git add .github/workflows/sync-upstream.yaml
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Configure upstream repository: ${{ inputs.upstream_repo }}"
-            git push origin main
-          fi
+          git add -A
+          git commit -m "Initial setup: sync with ${{ inputs.upstream_repo }} and add release workflows"
+          git push origin main
 
       - name: Trigger initial sync
         run: |
