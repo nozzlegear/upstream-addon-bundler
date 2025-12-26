@@ -61,6 +61,22 @@ jobs:
 
       - name: Trigger initial sync
         run: |
-          gh workflow run sync-upstream.yaml
+          # Wait for GitHub API to index the newly pushed workflow
+          echo "Waiting for workflow to be indexed by GitHub API..."
+          sleep 10
+
+          # Retry up to 3 times
+          for i in {1..3}; do
+            if gh workflow run sync-upstream.yaml; then
+              echo "Successfully triggered sync workflow"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 5 seconds..."
+            sleep 5
+          done
+
+          echo "Failed to trigger sync workflow automatically."
+          echo "You can manually trigger it with: gh workflow run sync-upstream.yaml"
+          exit 1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
