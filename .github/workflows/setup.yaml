@@ -1,0 +1,53 @@
+name: Initial Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        description: 'Upstream repository (e.g., username/repo-name)'
+        required: true
+        type: string
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote and fetch
+        run: |
+          git remote add upstream https://github.com/${{ inputs.upstream_repo }}.git
+          git fetch upstream
+
+      - name: Update sync workflow with upstream URL
+        run: |
+          sed -i 's|UPSTREAM_REPO_PLACEHOLDER|${{ inputs.upstream_repo }}|g' .github/workflows/sync-upstream.yaml
+
+      - name: Commit workflow update
+        run: |
+          git add .github/workflows/sync-upstream.yaml
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Configure upstream repository: ${{ inputs.upstream_repo }}"
+            git push origin main
+          fi
+
+      - name: Trigger initial sync
+        run: |
+          gh workflow run sync-upstream.yaml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

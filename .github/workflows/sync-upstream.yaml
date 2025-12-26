@@ -1,0 +1,70 @@
+name: Sync with Upstream
+
+on:
+  schedule:
+    # Run at 7pm CDT / 6pm CST (midnight UTC)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      has_changes: ${{ steps.check_changes.outputs.has_changes }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/UPSTREAM_REPO_PLACEHOLDER.git || true
+          git fetch upstream
+
+      - name: Check for upstream changes
+        id: check_changes
+        run: |
+          # Find the merge base (common ancestor) between HEAD and upstream/main
+          MERGE_BASE=$(git merge-base HEAD upstream/main)
+
+          # Check if there are commits in upstream/main since the merge base
+          UPSTREAM_COMMITS=$(git rev-list $MERGE_BASE..upstream/main --count)
+
+          echo "upstream_commits=$UPSTREAM_COMMITS" >> $GITHUB_OUTPUT
+
+          if [ "$UPSTREAM_COMMITS" -eq 0 ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No new commits in upstream repository"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Found $UPSTREAM_COMMITS new commit(s) in upstream repository since merge base"
+          fi
+
+      - name: Rebase on upstream
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git rebase upstream/main
+
+      - name: Push changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git push origin main --force-with-lease
+
+      - name: Create and push tag
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          # Generate tag name with timestamp
+          TAG_NAME="auto-sync-$(date +%Y%m%d-%H%M%S)"
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+          echo "Created and pushed tag: $TAG_NAME"

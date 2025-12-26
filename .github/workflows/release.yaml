@@ -1,0 +1,47 @@
+name: Pack and Release
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Sync with Upstream"]
+    types:
+      - completed
+jobs:
+  build:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    # Only run if triggered by tag push, manual dispatch, or successful sync workflow with changes
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.outputs.has_changes == 'true')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # Generate tag name with timestamp
+          TAG_NAME="manual-release-$(date +%Y%m%d-%H%M%S)"
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+          echo "Created and pushed tag: $TAG_NAME"
+
+      - name: Package and Release
+        uses: BigWigsMods/packager@v2.4.3
+        env:
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
