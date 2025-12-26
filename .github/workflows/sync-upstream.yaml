@@ -28,7 +28,8 @@ jobs:
 
       - name: Add upstream remote
         run: |
-          git remote add upstream https://github.com/UPSTREAM_REPO_PLACEHOLDER.git || true
+          UPSTREAM_REPO=$(cat .upstream-repo)
+          git remote add upstream https://github.com/${UPSTREAM_REPO}.git || true
           git fetch upstream
 
       - name: Check for upstream changes

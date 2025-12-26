@@ -13,8 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: write
-      workflows: write
 
     steps:
       - name: Checkout
@@ -43,14 +41,14 @@ jobs:
           # Get all files from upstream, replacing template files
           git checkout upstream/main .
 
-      - name: Restore and configure workflows
+      - name: Restore workflows and create config
         run: |
           # Restore our workflow files
           mkdir -p .github/workflows
           cp -r /tmp/workflows/* .github/workflows/
 
-          # Update sync workflow with upstream URL
-          sed -i 's|UPSTREAM_REPO_PLACEHOLDER|${{ inputs.upstream_repo }}|g' .github/workflows/sync-upstream.yaml
+          # Create upstream repo config file
+          echo "${{ inputs.upstream_repo }}" > .upstream-repo
 
       - name: Commit setup
         run: |

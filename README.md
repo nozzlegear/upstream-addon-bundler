@@ -29,15 +29,17 @@ gh workflow run setup.yaml -f upstream_repo=username/repo-name
 5. Click **Run workflow**
 
 The setup workflow will:
-- Configure the upstream remote
-- Update the sync workflow with the upstream URL
+- Fetch and merge all files from the upstream repository (replacing template files like README.md, LICENSE, etc.)
+- Create a `.upstream-repo` file containing the upstream repository URL
+- Restore the workflow files to enable automation
 - Trigger the initial sync
 - Create the first release
 
 ### 3. Verify Setup
 
 Check that:
-- The sync workflow has been updated with your upstream URL
+- A `.upstream-repo` file exists in your repository root
+- The repository contains the addon files from upstream
 - The initial sync has completed
 - A release has been created
 
@@ -76,6 +78,22 @@ If you get an error that looks something like the above, and CurseBreaker says i
 
 ## Workflows
 
+### Initial Setup (`setup.yaml`)
+One-time setup workflow that configures the repository.
+
+**Trigger**: Manual (`workflow_dispatch`)
+
+**Input**:
+- `upstream_repo`: The upstream repository (e.g., `username/repo-name`)
+
+**Process**:
+1. Fetches the upstream repository
+2. Replaces all template files with upstream content
+3. Restores workflow files from template
+4. Creates `.upstream-repo` config file with the upstream URL
+5. Commits and pushes all changes
+6. Triggers the initial sync
+
 ### Sync with Upstream (`sync-upstream.yaml`)
 Automatically syncs with the upstream repository.
 
@@ -84,12 +102,13 @@ Automatically syncs with the upstream repository.
 - Manual dispatch
 
 **Process**:
-1. Fetches upstream changes
-2. Checks for new commits
-3. Rebases local main on upstream/main
-4. Force-pushes with `--force-with-lease`
-5. Creates timestamped tag (`auto-sync-YYYYMMDD-HHMMSS`)
-6. Triggers release workflow if changes detected
+1. Reads upstream URL from `.upstream-repo` file
+2. Fetches upstream changes
+3. Checks for new commits
+4. Rebases local main on upstream/main
+5. Force pushes with `--force-with-lease`
+6. Creates timestamped tag (`auto-sync-YYYYMMDD-HHMMSS`)
+7. Triggers release workflow if changes detected
 
 ### Pack and Release (`release.yaml`)
 Packages and releases the addon.
@@ -132,3 +151,5 @@ gh workflow run release.yaml
 - Sync uses `--force-with-lease` to safely force-push rebased changes
 - Tags are automatically created with timestamps to trigger releases
 - The BigWigsMods packager requires specific addon structure (TOC file, etc.)
+- The `.upstream-repo` file stores the upstream repository URL and is read by the sync workflow
+- Do not delete the `.upstream-repo` file or the sync workflow will fail
